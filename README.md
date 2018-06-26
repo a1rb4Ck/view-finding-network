@@ -18,13 +18,13 @@ $ python download_images.py -w 4
 The above command will launch 4 worker threads to download the images to a default folder (./images).
 
 ### Dataset size info ###
-* `./images` folder will go up to **1.6Go**
+
+`./images` folder will go up to **1.6Go**
 
 ## Training
 
-### Warning: dataset size ###
-* `trn.tfrecords` file will go up to **67Go**
-* `val.tfrecords` file will go up to **16Go**
+**Warning: TFRecords augmented dataset size**  
+`trn.tfrecords` file will go up to **67Go**. `val.tfrecords` file will go up to **16Go**.  
 
 * Run `create_dbs.py` to generate the TFRecords files used by Tensorflow.
 * Run `vfn_train.py` to start training.
