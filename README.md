@@ -6,7 +6,7 @@ This repository contains the dataset and scripts used in the following article:
 
 ## Dependencies
 
-You will need to have `tensorflow` (version > 1.0), `skimage`, `tabulate`, `pillow` installed on your system to run the scripts.
+You will need to have `tensorflow` (version > 1.6), `skimage`, `tabulate`, `pillow` installed on your system to run the scripts.
 
 ## Download the dataset
 
@@ -17,7 +17,14 @@ $ python download_images.py -w 4
 ```
 The above command will launch 4 worker threads to download the images to a default folder (./images).
 
+### Dataset size info ###
+* `./images` folder will go up to **1.6Go**
+
 ## Training
+
+### Warning: dataset size ###
+* `trn.tfrecords` file will go up to **67Go**
+* `val.tfrecords` file will go up to **16Go**
 
 * Run `create_dbs.py` to generate the TFRecords files used by Tensorflow.
 * Run `vfn_train.py` to start training.

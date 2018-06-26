@@ -147,7 +147,7 @@ if __name__ == '__main__':
 
     training_images = inputs(args.training_db, batch_size_trn, None, True, augment_training_data)
     test_images = inputs(args.validation_db, batch_size_val, None, False)
-    net_data = np.load(parameter_path).item()
+    net_data = np.load(parameter_path, encoding='latin1').item()
     var_dict=  nw.get_variable_dict(net_data)
     with tf.variable_scope("ranker") as scope:
         feature_vec = nw.build_alexconvnet(training_images, var_dict, embedding_dim, spp, args.pooling)
@@ -156,9 +156,17 @@ if __name__ == '__main__':
         val_feature_vec = nw.build_alexconvnet(test_images, var_dict, embedding_dim, spp, args.pooling)
         L_val, p_val = nw.loss(val_feature_vec, nw.build_loss_matrix(batch_size_val), ranking_loss)
 
-    lr = tf.Variable(initial_lr)
+    # lr = tf.Variable(initial_lr)
     opt = tf.train.AdamOptimizer()
+    step = tf.Variable(0, trainable=False)
     grads = opt.compute_gradients(L)
+    lr = tf.train.exponential_decay(1e-3, global_step=step, decay_steps=3, decay_rate=0.9995)
+
+    train_op = tf.train.AdamOptimizer(lr).minimize(L, global_step=step)
+    apply_grad_op = opt.apply_gradients(grads)
+    # grads = opt.compute_gradients(L)
+    # apply_grad_op = opt.apply_gradients(grads)
+
 
     apply_grad_op = opt.apply_gradients(grads)
 
@@ -173,36 +181,35 @@ if __name__ == '__main__':
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
     current_lr = initial_lr
-
-    validation_history = np.zeros(shape=(total_steps/validation_interval, 3))
+    validation_history = np.zeros(shape=(total_steps//validation_interval, 3))
     if tabulate_available:
         def generate_validation_history(step, tbl):
             return tabulate(tbl, headers=['Step', 'LR', 'Loss'])
 
-        print tabulate(parameter_table)
+        print(tabulate(parameter_table))
 
     for step in range(total_steps+1):
         if step % step_size == 0 and step > 0:
             current_lr *= step_factor
-            print "Learning Rate: {}".format(current_lr)
+            print("Learning Rate: {}".format(current_lr))
         if step % checkpoint_interval == 0:
             saver.save(sess, 'snapshots/ranker_{}_{}.ckpt'.format(experiment_name, embedding_dim), global_step=step)
         t0 = time.time()
-        _, loss_val = sess.run([apply_grad_op, L])
+        _, _lr, loss_val = sess.run([train_op, lr, L])
         t1 = time.time()
-        print "Iteration {}: L={:0.4f} dT={:0.3f}".format(step, loss_val, t1-t0)
+        print("Iteration {}: L={:0.4f} dT={:0.3f} lr={:0.4f}".format(step, loss_val, t1-t0, _lr))
         if step % validation_interval == 0 and step > 0:
             val_avg = 0.0
-            for k in range(validation_instances/batch_size_val):
+            for k in range(validation_instances // batch_size_val):
                 val_loss = sess.run([L_val])[0]
                 val_avg+=val_loss
             val_avg /= float(validation_instances/batch_size_val)
-            validation_history[step / validation_interval - 1] = (step, current_lr, val_avg)
+            validation_history[step // validation_interval - 1] = (step, current_lr, val_avg)
             if tabulate_available:
-                print generate_validation_history(step/validation_instances, validation_history)
+                print(generate_validation_history(step // validation_instances, validation_history))
             else:
-                print "\tValidation: L={:0.4f}".format(val_avg)
+                print("\tValidation: L={:0.4f}".format(val_avg))
             np.savez("{}_history.npz".format(experiment_name), validation=validation_history)
     if tabulate_available:
-        print tabulate(parameter_table)
+        print(tabulate(parameter_table))
     sess.close()

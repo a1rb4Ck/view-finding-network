@@ -18,7 +18,7 @@ def build_loss_matrix(batch_size):
     return loss_matrix
 
 def score(feature_vec):
-    W = tf.get_variable("W", shape=[feature_vec.get_shape()[1],1], initializer=tf.uniform_unit_scaling_initializer()) # init_weight([int(feature_vec.get_shape()[1]),1])
+    W = tf.get_variable("W", shape=[feature_vec.get_shape()[1],1], initializer=tf.variance_scaling_initializer(distribution='uniform')) # init_weight([int(feature_vec.get_shape()[1]),1])
     return tf.matmul(feature_vec,W)
 
 def svm_loss(feature_vec, loss_matrix):
@@ -41,7 +41,7 @@ def loss(feature_vec, loss_matrix, ranking_loss_type):
     elif ranking_loss_type == 'ranknet':
         return ranknet_loss(feature_vec, loss_matrix)
     else:
-        print "Error: ranking loss >> {} << is unknown".format(ranking_loss_type)
+        print("Error: ranking loss >> {} << is unknown".format(ranking_loss_type))
 
 def conv(input, kernel, biases, k_h, k_w, c_o, s_h, s_w,  padding="VALID", group=1):
     '''From https://github.com/ethereon/caffe-tensorflow
@@ -171,8 +171,9 @@ def build_alexconvnet(images, variable_dict, embedding_dim, SPP = False, pooling
             bn5 = tf.contrib.layers.flatten(maxpool5)
 
     flattened_dim = int(np.prod(bn5.get_shape()[1:]))
-    fc6W =  tf.get_variable("fc6w", [flattened_dim, embedding_dim], initializer = tf.uniform_unit_scaling_initializer()) # init_weight((flattened_dim, embedding_dim))
-    fc6b = tf.get_variable("fc6b", [embedding_dim], initializer = tf.constant_initializer())  #init_bias([embedding_dim])
+
+    fc6W =  tf.get_variable("fc6w", [flattened_dim, embedding_dim], initializer = tf.variance_scaling_initializer(distribution='uniform')) # init_weight((flattened_dim, embedding_dim))
+    fc6b = tf.get_variable("fc6b", [embedding_dim], initializer = tf.constant_initializer())  #init_bias([embedding_dim])  tf.initializers.variance_scaling()
 
     fc6 = tf.nn.relu_layer(bn5, fc6W, fc6b)
 
